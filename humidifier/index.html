@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Humidifier Control Panel</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #login-page {
+      height: 100vh;
+      width: 100%;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #login-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 500px;
+      text-align: center;
+    }
+
+    #login-box img {
+      width: 440px;
+      margin-bottom: 20px;
+    }
+
+    #login-box input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    #login-box button {
+      padding: 10px 20px;
+      background: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #login-box button:hover {
+      background: #3498db;
+    }
+
+    #main-content {
+      display: none;
+      background: #eef;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .section {
+      margin: 15px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      background: #2980b9;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #3498db;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .status p {
+      margin: 5px 0;
+    }
+
+    .warning {
+      background: #ffe0e0;
+      color: red;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .ok {
+      background: #e0ffe0;
+      color: green;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .auto-status {
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .on {
+      background: #e0ffe0;
+      color: green;
+    }
+
+    .off {
+      background: #ffe0e0;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page">
+  <div id="login-box">
+    <img src="Gambar WhatsApp 2025-07-23 pukul 23.18.08_f01f0584.jpg" alt="Logo Humismart">
+    <h2>Login ke Humismart</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Masuk</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main-content">
+  <h1>Humidifier IoT Control</h1>
+
+  <div class="section">
+    <h3>Set Timer (menit)</h3>
+    <input type="number" id="timerInput" placeholder="Masukkan menit" min="1" max="300" />
+    <button onclick="setCustomTimer()">Set Timer</button>
+    <button onclick="resetTimer()">Reset Timer</button>
+  </div>
+
+  <div class="section">
+    <h3>Mode Otomatis</h3>
+    <button onclick="setAutoMode(true)">Aktifkan Otomatis</button>
+    <button onclick="setAutoMode(false)">Matikan Otomatis</button>
+    <div id="autoStatus" class="auto-status">Mendeteksi status...</div>
+  </div>
+
+  <div class="section">
+    <h3>Kontrol Lampu</h3>
+    <button id="lampBtn" onclick="toggleLamp()">Hidupkan Lampu</button>
+  </div>
+
+  <div class="section status">
+    <h3>Status Sensor</h3>
+    <p><strong>Suhu:</strong> <span id="temp">--</span> °C</p>
+    <p><strong>Kelembapan:</strong> <span id="hum">--</span> %</p>
+    <p><strong>Air:</strong> <span id="air">--</span> %</p>
+    <p><strong>Jam:</strong> <span id="clock">--:--:--</span></p>
+    <div id="waterStatus"></div>
+  </div>
+</div>
+
+<script>
+  function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    if (username === "humismart" && password === "12345") {
+      document.getElementById("login-page").style.display = "none";
+      document.getElementById("main-content").style.display = "block";
+    } else {
+      alert("Username atau password salah!");
+    }
+  }
+
+  const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+  let autoMode = null;
+
+  client.on("connect", function () {
+    console.log("Connected to MQTT broker");
+    client.subscribe("humidifier/status/#");
+  });
+
+  client.on("message", function (topic, message) {
+    const msg = message.toString();
+    if (topic.endsWith("temperature")) {
+      document.getElementById("temp").innerText = msg;
+    } else if (topic.endsWith("humidity")) {
+      document.getElementById("hum").innerText = msg;
+    } else if (topic.endsWith("waterlevel")) {
+      document.getElementById("air").innerText = msg;
+    } else if (topic.endsWith("time")) {
+      document.getElementById("clock").innerText = msg;
+    } else if (topic.endsWith("waterlow")) {
+      const waterStatus = document.getElementById("waterStatus");
+      waterStatus.innerHTML = msg === "1"
+        ? "<div class='warning'>PERINGATAN: Air Hampir Habis!</div>"
+        : "<div class='ok'>Air Cukup</div>";
+    } else if (topic.endsWith("autospray")) {
+      autoMode = msg === "1";
+      updateAutoStatus();
+    }
+  });
+
+  function updateAutoStatus() {
+    const status = document.getElementById("autoStatus");
+    if (autoMode) {
+      status.textContent = "Mode Otomatis AKTIF";
+      status.className = "auto-status on";
+    } else {
+      status.textContent = "Mode Otomatis NONAKTIF";
+      status.className = "auto-status off";
+    }
+  }
+
+  function setAutoMode(enable) {
+    const newState = enable ? "ON" : "OFF";
+    client.publish("humidifier/auto", newState);
+  }
+
+  function setCustomTimer() {
+    const minutes = document.getElementById("timerInput").value;
+    if (minutes && minutes > 0) {
+      client.publish("humidifier/timer", minutes.toString());
+    } else {
+      alert("Masukkan waktu dalam menit yang valid!");
+    }
+  }
+
+  function resetTimer() {
+    client.publish("humidifier/timer", "0");
+  }
+
+  // Kontrol Lampu ON/OFF
+  let lampOn = false;
+
+  function toggleLamp() {
+    lampOn = !lampOn;
+    const btn = document.getElementById("lampBtn");
+
+    if (lampOn) {
+      client.publish("humidifier/rgb", "255,255,255"); // Putih
+      btn.textContent = "Matikan Lampu";
+      btn.style.background = "#f1c40f";
+      btn.style.color = "#000";
+    } else {
+      client.publish("humidifier/rgb", "0,0,0"); // Mati
+      btn.textContent = "Hidupkan Lampu";
+      btn.style.background = "#2980b9";
+      btn.style.color = "#fff";
+    }
+  }
+</script>
+</body>
+</html>
