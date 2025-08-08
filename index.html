@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Siberia Smart Diffuser Control Panel</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
+    /* === Gaya Umum === */
     body {
       font-family: sans-serif;
       margin: 0;
       padding: 0;
+      background: #f5f5f5;
     }
 
-    #login-page {
-      height: 100vh;
-      width: 100%;
-      background: #f5f5f5;
-      display: flex;
+    #login-page, .main-content {
+      display: none;
       justify-content: center;
       align-items: center;
+      height: 100vh;
     }
 
     #login-box {
@@ -34,7 +34,7 @@
       margin-bottom: 20px;
     }
 
-    #login-box input {
+    input, button, select {
       width: 100%;
       padding: 10px;
       margin: 10px 0;
@@ -43,48 +43,10 @@
       border: 1px solid #ccc;
     }
 
-    #login-box button {
-      padding: 10px 20px;
-      background: #2980b9;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #login-box button:hover {
-      background: #3498db;
-    }
-
-    #main-content {
-      display: none;
-      background: #eef;
-      padding: 20px;
-      max-width: 500px;
-      margin: auto;
-    }
-
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-
-    .section {
-      margin: 15px 0;
-      padding: 15px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
     button {
-      margin: 5px;
-      padding: 10px 15px;
-      border: none;
       background: #2980b9;
       color: white;
-      border-radius: 5px;
+      border: none;
       cursor: pointer;
     }
 
@@ -92,18 +54,17 @@
       background: #3498db;
     }
 
-    input[type="number"] {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    .panel {
+      background: white;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .status p {
-      margin: 5px 0;
+    .section {
+      margin-top: 20px;
     }
 
     .warning {
@@ -112,7 +73,6 @@
       font-weight: bold;
       padding: 10px;
       border-radius: 5px;
-      margin-top: 10px;
     }
 
     .ok {
@@ -121,33 +81,19 @@
       font-weight: bold;
       padding: 10px;
       border-radius: 5px;
-      margin-top: 10px;
     }
 
-    .auto-status {
-      font-weight: bold;
-      padding: 10px;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-
-    .on {
-      background: #e0ffe0;
-      color: green;
-    }
-
-    .off {
-      background: #ffe0e0;
-      color: red;
-    }
+    .auto-status.on { background: #e0ffe0; color: green; }
+    .auto-status.off { background: #ffe0e0; color: red; }
+    .auto-status { font-weight: bold; padding: 10px; margin-top: 10px; border-radius: 5px; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN PAGE -->
-<div id="login-page">
+<!-- LOGIN -->
+<div id="login-page" style="display:flex;">
   <div id="login-box">
-    <img src="Gambar WhatsApp 2025-07-23 pukul 23.18.08_f01f0584.jpg" alt="Logo Humismart">
+    <img src="Gambar WhatsApp 2025-07-23 pukul 23.18.08_f01f0584.jpg" alt="Logo">
     <h2>Login ke Siberia Smart Diffuser</h2>
     <input type="text" id="username" placeholder="Username">
     <input type="password" id="password" placeholder="Password">
@@ -155,129 +101,170 @@
   </div>
 </div>
 
-<!-- MAIN CONTENT -->
-<div id="main-content">
-  <h1>Siberia Smart Diffuser IoT Control</h1>
-
-  <div class="section">
-    <h3>Set Timer (menit)</h3>
-    <input type="number" id="timerInput" placeholder="Masukkan menit" min="1" max="300" />
-    <button onclick="setCustomTimer()">Set Timer</button>
-    <button onclick="resetTimer()">Reset Timer</button>
+<!-- PILIH DIFFUSER -->
+<div class="main-content" id="menu">
+  <div class="panel">
+    <h2>Pilih Diffuser</h2>
+    <select id="diffuserSelector" onchange="switchDiffuser()">
+      <option value="">-- Pilih Diffuser --</option>
+      <option value="1">Siberia Diffuser 1</option>
+      <option value="2">Siberia Diffuser 2</option>
+    </select>
   </div>
+</div>
 
-  <div class="section">
-    <h3>Mode Otomatis</h3>
-    <button onclick="setAutoMode(true)">Aktifkan Otomatis</button>
-    <button onclick="setAutoMode(false)">Matikan Otomatis</button>
-    <div id="autoStatus" class="auto-status">Mendeteksi status...</div>
+<!-- PANEL DIFFUSER -->
+<div class="main-content" id="diffuser1">
+  <div class="panel">
+    <h2>Kontrol Diffuser 1</h2>
+
+    <div class="section">
+      <h3>Set Timer (menit)</h3>
+      <input type="number" id="timerInput1" min="1" max="300">
+      <button onclick="setCustomTimer(1)">Set Timer</button>
+      <button onclick="resetTimer(1)">Reset Timer</button>
+    </div>
+
+    <div class="section">
+      <h3>Mode Otomatis</h3>
+      <button onclick="setAutoMode(true, 1)">Aktifkan Otomatis</button>
+      <button onclick="setAutoMode(false, 1)">Matikan Otomatis</button>
+      <div id="autoStatus1" class="auto-status">Menunggu...</div>
+    </div>
+
+    <div class="section">
+      <h3>Kontrol Lampu</h3>
+      <button id="lampBtn1" onclick="toggleLamp(1)">Hidupkan Lampu</button>
+    </div>
+
+    <div class="section">
+      <h3>Status Sensor</h3>
+      <p>Suhu: <span id="temp1">--</span> °C</p>
+      <p>Kelembapan: <span id="hum1">--</span> %</p>
+      <p>Air: <span id="air1">--</span> %</p>
+      <p>Jam: <span id="clock1">--:--:--</span></p>
+      <div id="waterStatus1"></div>
+    </div>
   </div>
+</div>
 
-  <div class="section">
-    <h3>Kontrol Lampu</h3>
-    <button id="lampBtn" onclick="toggleLamp()">Hidupkan Lampu</button>
-  </div>
+<div class="main-content" id="diffuser2">
+  <div class="panel">
+    <h2>Kontrol Diffuser 2</h2>
 
-  <div class="section status">
-    <h3>Status Sensor</h3>
-    <p><strong>Suhu:</strong> <span id="temp">--</span> °C</p>
-    <p><strong>Kelembapan:</strong> <span id="hum">--</span> %</p>
-    <p><strong>Air:</strong> <span id="air">--</span> %</p>
-    <p><strong>Jam:</strong> <span id="clock">--:--:--</span></p>
-    <div id="waterStatus"></div>
+    <div class="section">
+      <h3>Set Timer (menit)</h3>
+      <input type="number" id="timerInput2" min="1" max="300">
+      <button onclick="setCustomTimer(2)">Set Timer</button>
+      <button onclick="resetTimer(2)">Reset Timer</button>
+    </div>
+
+    <div class="section">
+      <h3>Mode Otomatis</h3>
+      <button onclick="setAutoMode(true, 2)">Aktifkan Otomatis</button>
+      <button onclick="setAutoMode(false, 2)">Matikan Otomatis</button>
+      <div id="autoStatus2" class="auto-status">Menunggu...</div>
+    </div>
+
+    <div class="section">
+      <h3>Kontrol Lampu</h3>
+      <button id="lampBtn2" onclick="toggleLamp(2)">Hidupkan Lampu</button>
+    </div>
+
+    <div class="section">
+      <h3>Status Sensor</h3>
+      <p>Suhu: <span id="temp2">--</span> °C</p>
+      <p>Kelembapan: <span id="hum2">--</span> %</p>
+      <p>Air: <span id="air2">--</span> %</p>
+      <p>Jam: <span id="clock2">--:--:--</span></p>
+      <div id="waterStatus2"></div>
+    </div>
   </div>
 </div>
 
 <script>
   function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    if (username === "siberia" && password === "12345") {
-      document.getElementById("login-page").style.display = "none";
-      document.getElementById("main-content").style.display = "block";
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if (u === 'siberia' && p === '12345') {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('menu').style.display = 'flex';
     } else {
-      alert("Username atau password salah!");
+      alert("Username atau Password salah!");
     }
+  }
+
+  function switchDiffuser() {
+    const val = document.getElementById("diffuserSelector").value;
+    document.getElementById("diffuser1").style.display = val === "1" ? "flex" : "none";
+    document.getElementById("diffuser2").style.display = val === "2" ? "flex" : "none";
   }
 
   const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-  let autoMode = null;
 
-  client.on("connect", function () {
-    console.log("Connected to MQTT broker");
+  client.on("connect", () => {
+    console.log("Connected to MQTT");
     client.subscribe("humidifier/status/#");
+    client.subscribe("humidifier2/status/#");
   });
 
-  client.on("message", function (topic, message) {
+  client.on("message", (topic, message) => {
     const msg = message.toString();
-    if (topic.endsWith("temperature")) {
-      document.getElementById("temp").innerText = msg;
-    } else if (topic.endsWith("humidity")) {
-      document.getElementById("hum").innerText = msg;
-    } else if (topic.endsWith("waterlevel")) {
-      document.getElementById("air").innerText = msg;
-    } else if (topic.endsWith("time")) {
-      document.getElementById("clock").innerText = msg;
-    } else if (topic.endsWith("waterlow")) {
-      const waterStatus = document.getElementById("waterStatus");
-      waterStatus.innerHTML = msg === "1"
-        ? "<div class='warning'>PERINGATAN: Air Hampir Habis!</div>"
-        : "<div class='ok'>Air Cukup</div>";
+    let id = topic.includes("humidifier2") ? "2" : "1";
+
+    if (topic.endsWith("temperature")) document.getElementById("temp" + id).innerText = msg;
+    else if (topic.endsWith("humidity")) document.getElementById("hum" + id).innerText = msg;
+    else if (topic.endsWith("waterlevel")) document.getElementById("air" + id).innerText = msg;
+    else if (topic.endsWith("time")) document.getElementById("clock" + id).innerText = msg;
+    else if (topic.endsWith("waterlow")) {
+      document.getElementById("waterStatus" + id).innerHTML =
+        msg === "1" ? "<div class='warning'>PERINGATAN: Air Hampir Habis!</div>" :
+                      "<div class='ok'>Air Cukup</div>";
     } else if (topic.endsWith("autospray")) {
-      autoMode = msg === "1";
-      updateAutoStatus();
+      const status = document.getElementById("autoStatus" + id);
+      status.innerText = msg === "1" ? "Mode Otomatis AKTIF" : "Mode Otomatis NONAKTIF";
+      status.className = "auto-status " + (msg === "1" ? "on" : "off");
     }
   });
 
-  function updateAutoStatus() {
-    const status = document.getElementById("autoStatus");
-    if (autoMode) {
-      status.textContent = "Mode Otomatis AKTIF";
-      status.className = "auto-status on";
+  function setAutoMode(enable, id) {
+    const topic = id === 1 ? "humidifier/auto" : "humidifier2/auto";
+    client.publish(topic, enable ? "ON" : "OFF");
+  }
+
+  function setCustomTimer(id) {
+    const value = document.getElementById("timerInput" + id).value;
+    if (value > 0) {
+      client.publish((id === 1 ? "humidifier/timer" : "humidifier2/timer"), value.toString());
     } else {
-      status.textContent = "Mode Otomatis NONAKTIF";
-      status.className = "auto-status off";
+      alert("Masukkan waktu valid!");
     }
   }
 
-  function setAutoMode(enable) {
-    const newState = enable ? "ON" : "OFF";
-    client.publish("humidifier/auto", newState);
+  function resetTimer(id) {
+    client.publish((id === 1 ? "humidifier/timer" : "humidifier2/timer"), "0");
   }
 
-  function setCustomTimer() {
-    const minutes = document.getElementById("timerInput").value;
-    if (minutes && minutes > 0) {
-      client.publish("humidifier/timer", minutes.toString());
-    } else {
-      alert("Masukkan waktu dalam menit yang valid!");
-    }
-  }
+  let lampState = { 1: false, 2: false };
 
-  function resetTimer() {
-    client.publish("humidifier/timer", "0");
-  }
+  function toggleLamp(id) {
+    lampState[id] = !lampState[id];
+    const btn = document.getElementById("lampBtn" + id);
+    const topic = id === 1 ? "humidifier/rgb" : "humidifier2/rgb";
 
-  // Kontrol Lampu ON/OFF
-  let lampOn = false;
-
-  function toggleLamp() {
-    lampOn = !lampOn;
-    const btn = document.getElementById("lampBtn");
-
-    if (lampOn) {
-      client.publish("humidifier/rgb", "255,255,255"); // Putih
-      btn.textContent = "Matikan Lampu";
+    if (lampState[id]) {
+      client.publish(topic, "255,255,255");
+      btn.innerText = "Matikan Lampu";
       btn.style.background = "#f1c40f";
       btn.style.color = "#000";
     } else {
-      client.publish("humidifier/rgb", "0,0,0"); // Mati
-      btn.textContent = "Hidupkan Lampu";
+      client.publish(topic, "0,0,0");
+      btn.innerText = "Hidupkan Lampu";
       btn.style.background = "#2980b9";
       btn.style.color = "#fff";
     }
   }
 </script>
+
 </body>
 </html>
